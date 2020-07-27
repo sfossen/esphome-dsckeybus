@@ -183,8 +183,10 @@ bool isInt(std::string s, int base){
 	 
 
   void loop() override {
-    	 
-    if ( !forceDisconnect & dsc.loop() && dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
+	    if (!forceDisconnect && dsc.loop()) {
+    	  ESP_LOGD("Debug01","Received: %d,%d,%02X,%02X,%d,%d,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.openZones[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+		}
+    if (  dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
 		dsc.statusChanged = false;                   // Reset the status tracking flag
 			 
 		// If the Keybus data buffer is exceeded, the sketch is too busy to process all Keybus commands.  Call
@@ -283,6 +285,7 @@ bool isInt(std::string s, int base){
 				else fireStatusChangeCallback(partition+1,false ); // Fire alarm restored
 			}
 		}
+		 ESP_LOGD("Debug02","Received: %d,%d,%02X,%02X,%d,%d,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.openZones[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 
 		// Publishes zones 1-64 status in a separate topic per zone
 		// Zone status is stored in the openZones[] and openZonesChanged[] arrays using 1 bit per zone, up to 64 zones:
