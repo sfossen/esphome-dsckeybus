@@ -368,6 +368,7 @@ void dscKeybusInterface::processPanelStatus() {
       // Partition armed with no entry delay
 	  case 0x06:
       case 0x16: {
+	   if (bitRead(panelData[statusByte],1)) { // look for armed light being set to ensure valid arm message
         noEntryDelay[partitionIndex] = true;
 
         // Sets an armed mode if not already set, used if interface is initialized while the panel is armed
@@ -389,7 +390,7 @@ void dscKeybusInterface::processPanelStatus() {
         }
         break;
       }
-
+	  }
       // Partition disarmed
       case 0x3D:
       case 0x3E: {
