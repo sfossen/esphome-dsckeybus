@@ -152,7 +152,7 @@ void dscKeybusInterface::processPanelStatus() {
 
     // Fire status
    // if (panelData[messageByte] < 0x12) {  // Ignores fire light status in intermittent states
-      if (bitRead(panelData[4],6)) fire[partitionIndex] = true;
+      if (bitRead(panelData[messageByte+1],6)) fire[partitionIndex] = true;
       else fire[partitionIndex] = false;
       if (fire[partitionIndex] != previousFire[partitionIndex]) {
         previousFire[partitionIndex] = fire[partitionIndex];
