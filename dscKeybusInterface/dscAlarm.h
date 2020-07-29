@@ -13,6 +13,7 @@ void disconnectKeybus() {
   dsc.keybusConnected = false;
   dsc.statusChanged = false;
   forceDisconnect = true;
+ 
 }
 
 class DSCkeybushome : public Component, public CustomAPIDevice {
@@ -229,11 +230,13 @@ bool isInt(std::string s, int base){
 		}	
 		if (dsc.keypadFireAlarm) partitionMsgChangeCallback(1,"Keypad Fire Alarm");
 	
+	 ESP_LOGD("Debug22","Partitions changed data:  %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	 
 		// Publishes status per partition
 		for (byte partition = 0; partition < dscPartitions; partition++) {
 			
 			
-		 ESP_LOGD("Debug22","Partitions changed data:  %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+		 ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X",partition,dsc.status[partition],dsc.armed[partition],dsc.fire[partition]);
 		 
 			if (lastStatus[partition] == 0) partitionMsgChangeCallback(partition+1,MSG_NONE ); //init msgs
 			
