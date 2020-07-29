@@ -74,6 +74,7 @@ dscKeybusInterface::dscKeybusInterface(byte setClockPin, byte setReadPin, byte s
   processModuleData = false;
   writePartition = 1;
   pauseStatus = false;
+  enable05ArmStatus=true;
 }
 
 
