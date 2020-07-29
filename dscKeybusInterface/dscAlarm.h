@@ -167,13 +167,15 @@ bool isInt(std::string s, int base){
 		}
 	}
 	// Fire command
-	else if (state.compare("F") == 0 && !dsc.armed[partition] && !dsc.exitDelay[partition]) {
+	//else if (state.compare("F") == 0 && !dsc.armed[partition] && !dsc.exitDelay[partition]) {
+	else if (state.compare("F") == 0 ) {
       dsc.writePartition = partition+1;         // Sets writes to the partition number
       dsc.write('f');                             // Virtual keypad arm away
     }
 	
 	// Panic command
-	else if (state.compare("P") == 0 && !dsc.armed[partition] && !dsc.exitDelay[partition]) {
+	//else if (state.compare("P") == 0 && !dsc.armed[partition] && !dsc.exitDelay[partition]) {
+	else if (state.compare("P") == 0 ) {
       dsc.writePartition = partition+1;         // Sets writes to the partition number
       dsc.write('p');                             // Virtual keypad arm away
     }
@@ -230,7 +232,7 @@ bool isInt(std::string s, int base){
 		}	
 		if (dsc.keypadFireAlarm) partitionMsgChangeCallback(1,"Keypad Fire Alarm");
 	
-	 ESP_LOGD("Debug22","Partitions changed data:  %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	 ESP_LOGD("Debug22","Partition1 changed data:  %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 	 
 		// Publishes status per partition
 		for (byte partition = 0; partition < dscPartitions; partition++) {
