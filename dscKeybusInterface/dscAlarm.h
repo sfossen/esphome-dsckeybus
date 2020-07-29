@@ -236,7 +236,7 @@ bool isInt(std::string s, int base){
 		for (byte partition = 0; partition < dscPartitions; partition++) {
 			
 			
-		 ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X",partition,dsc.status[partition],dsc.armed[partition],dsc.fire[partition]);
+		 ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.fire[partition]);
 		 
 			if (lastStatus[partition] == 0) partitionMsgChangeCallback(partition+1,MSG_NONE ); //init msgs
 			
