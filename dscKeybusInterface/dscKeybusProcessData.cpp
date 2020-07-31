@@ -163,7 +163,7 @@ void dscKeybusInterface::processPanelStatus() {
       }
    // }
 
-	if (!enable05ArmStatus) return;
+
     // Messages
     switch (panelData[messageByte]) {
 
@@ -269,6 +269,7 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Exit delay in progress
       case 0x08: {
+		
         writeArm[partitionIndex] = false;
         accessCodePrompt = false;
 
@@ -314,6 +315,7 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Entry delay in progress
       case 0x0C: {
+		if (!enable05ArmStatus) break;
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -358,6 +360,7 @@ void dscKeybusInterface::processPanelStatus() {
 	  }
       // Arming with bypassed zones
       case 0x15: {
+		if (!enable05ArmStatus) break;
         ready[partitionIndex] = true;
 		if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -370,7 +373,8 @@ void dscKeybusInterface::processPanelStatus() {
       // Partition armed with no entry delay
 	  case 0x06:
       case 0x16: {
-	   if (bitRead(panelData[statusByte],1) && enable05ArmStatus) { // look for armed light being set to ensure valid arm message
+	   if (!enable05ArmStatus) break;
+	   if (bitRead(panelData[statusByte],1) ) { // look for armed light being set to ensure valid arm message
         noEntryDelay[partitionIndex] = true;
 
         // Sets an armed mode if not already set, used if interface is initialized while the panel is armed
