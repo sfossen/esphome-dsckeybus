@@ -8,6 +8,7 @@
 dscKeybusInterface dsc(dscClockPin, dscReadPin, dscWritePin);
 bool forceDisconnect;
 
+
 void disconnectKeybus() {
   dsc.stop();
   dsc.keybusConnected = false;
@@ -18,9 +19,10 @@ void disconnectKeybus() {
 
 class DSCkeybushome : public Component, public CustomAPIDevice {
  public:
-   DSCkeybushome( const char *accessCode, bool enable05ArmStatus)
+   DSCkeybushome( const char *accessCode="", bool enable05ArmStatus = true, bool enable05Messages=true)
    :  accessCode(accessCode)
    ,  enable05ArmStatus(enable05ArmStatus)
+    , enable05Messages(enable05Messages)
   {}
  
   std::function<void (uint8_t, bool)> zoneStatusChangeCallback;
@@ -53,13 +55,18 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
   void onPartitionStatusChange(std::function<void (uint8_t partition,std::string status)> callback) { partitionStatusChangeCallback = callback; }
   void onPartitionMsgChange(std::function<void (uint8_t partition,std::string msg)> callback) { partitionMsgChangeCallback = callback; }
   
+  bool debug = false;
+  const char *accessCode;
+  bool enable05ArmStatus; 
+  bool enable05Messages;
+  
   private:
     uint8_t zone;
 	byte lastStatus[dscPartitions];
-	const char *accessCode;
-	bool enable05ArmStatus;
+	
 	
   void setup() override {
+	
     register_service(&DSCkeybushome::set_alarm_state,"set_alarm_state", {"partition","state","code"});
 	register_service(&DSCkeybushome::alarm_disarm,"alarm_disarm",{"code"});
 	register_service(&DSCkeybushome::alarm_arm_home,"alarm_arm_home");
@@ -159,11 +166,11 @@ bool isInt(std::string s, int base){
 		dsc.writePartition = partition+1;         // Sets writes to the partition number
 		strcpy(cmd,"*9");
 	
-		ESP_LOGD("Debug","Writing keys: %s, [%s], %d",cmd,accessCode,code.length());
+		if (debug) ESP_LOGD("Debug","Writing keys: %s, [%s], %d",cmd,accessCode,code.length());
 		if (code.length() == 4 ) { // ensure we get 4 digit code
 			dsc.write(cmd);
 			dsc.write(accessCode);
-			ESP_LOGD("Debug","Writing keys: %s,[%s],%d",cmd,accessCode,strlen(accessCode));
+		if (debug)	ESP_LOGD("Debug","Writing keys: %s,[%s],%d",cmd,accessCode,strlen(accessCode));
 		}
 	}
 	// Fire command
@@ -185,7 +192,6 @@ bool isInt(std::string s, int base){
 		dsc.writePartition = partition+1;         // Sets writes to the partition number
 		if (code.length() == 4 ) { // ensure we get 4 digit code
 			dsc.write(accessCode);
-			ESP_LOGD("Debug","got code: %s",accessCode);
 		}
 		
 	}
@@ -225,24 +231,22 @@ bool isInt(std::string s, int base){
 			else troubleStatusChangeCallback(false);
 		}
 		
-		if (dsc.powerChanged) {
+		if (dsc.powerChanged && enable05Messages) {
 			dsc.powerChanged=false;
 			if (dsc.powerTrouble) partitionMsgChangeCallback(1,"AC power failure");
-			else partitionMsgChangeCallback(1,"AC power returned");
 		}	
-		if (dsc.keypadFireAlarm) partitionMsgChangeCallback(1,"Keypad Fire Alarm");
+		if (dsc.keypadFireAlarm &&  enable05Messages) partitionMsgChangeCallback(1,"Keypad Fire Alarm");
 	
-	 ESP_LOGD("Debug22","Partition1 changed data:  %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.armedChanged[0],dsc.exitDelay[0],dsc.armed[0],dsc.lights[0],dsc.status[0],dsc.armedAway[0],dsc.armedStay[0],dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	if (debug) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 	 
 		// Publishes status per partition
 		for (byte partition = 0; partition < dscPartitions; partition++) {
 			
-			
-		 ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.fire[partition]);
+		if (dsc.disabled[partition]) continue; //skip disabled or partitions in install programming	
+		
+		if (debug) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition]);
 		 
-			if (lastStatus[partition] == 0) partitionMsgChangeCallback(partition+1,MSG_NONE ); //init msgs
-			
-			if (lastStatus[partition] != dsc.status[partition] ) {
+			if (lastStatus[partition] != dsc.status[partition] && enable05Messages ) {
 				lastStatus[partition]=dsc.status[partition];
 				char msg[50];
 				sprintf(msg,"%02X: %s", dsc.status[partition], String(statusText(dsc.status[partition])).c_str());
@@ -254,14 +258,12 @@ bool isInt(std::string s, int base){
 				dsc.readyChanged[partition] = false; // no need to update the ready status since we update the current status here
 				dsc.armedChanged[partition] = false;  // Resets the partition armed status flag
 				if (dsc.armed[partition]) {
-					if (dsc.armedAway[partition] && dsc.noEntryDelay[partition]) partitionStatusChangeCallback(partition+1,STATUS_NIGHT);
+					if ((dsc.armedAway[partition] || dsc.armedStay[partition] )&& dsc.noEntryDelay[partition]) 	partitionStatusChangeCallback(partition+1,STATUS_NIGHT);
 					else if (dsc.armedAway[partition]) partitionStatusChangeCallback(partition+1,STATUS_ARM);
 					else if (dsc.armedStay[partition]) partitionStatusChangeCallback(partition+1,STATUS_STAY );
-					if (lastStatus[partition] == 0x15) partitionStatusChangeCallback(partition+1,MSG_ARMED_BYPASS );
 				} else {
 					if (dsc.ready[partition] ) 	partitionStatusChangeCallback(partition+1,STATUS_OFF ); 
-					else if (!dsc.armed[partition]) partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
-	
+					else  partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
 				}
 			}
 			// Publishes exit delay status
@@ -276,7 +278,6 @@ bool isInt(std::string s, int base){
 				dsc.readyChanged[partition] = false;  // Resets the partition alarm status flag
 				if (dsc.ready[partition] ) 	partitionStatusChangeCallback(partition+1,STATUS_OFF ); 
 				else if (!dsc.armed[partition]) partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
-				
 			}
 
 			// Publishes alarm status
@@ -329,6 +330,7 @@ const __FlashStringHelper *statusText(uint8_t statusCode)
         case 0x03: return F("Zones open");
         case 0x04: return F("Armed stay");
         case 0x05: return F("Armed away");
+		case 0x06: return F("No entry delay");
         case 0x07: return F("Failed to arm");
         case 0x08: return F("Exit delay");
         case 0x09: return F("No entry delay");

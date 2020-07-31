@@ -508,7 +508,7 @@ void dscKeybusInterface::write(const char receivedKey) {
     #if defined(ESP8266)
     yield();
     #endif
-	if (millis() - waitTime > 3000) { // timeout after no response from * write
+	if (millis() - waitTime > 10000) { // timeout after no response from * write
 		writeKeysPending = false;
 		wroteAsterisk = false;  // Resets the flag that delays writing after '*' is pressed
         writeAsterisk = false;
@@ -531,7 +531,7 @@ void dscKeybusInterface::write(const char *receivedKeys, bool blockingWrite) {
     #if defined(ESP8266)
     yield();
     #endif
-	if (millis() - waitTime > 3000) { // timeout after no response from * write
+	if (millis() - waitTime > 10000) { // timeout after no response from * write
 		writeKeysPending = false;
 		wroteAsterisk = false;  // Resets the flag that delays writing after '*' is pressed
         writeAsterisk = false;
@@ -555,7 +555,7 @@ void dscKeybusInterface::write(const char *receivedKeys, bool blockingWrite) {
       #if defined(ESP8266)
       yield();
       #endif
-	  if (millis() - waitTime > 3000) { // timeout after no response for 3 seconds from * write
+	  if (millis() - waitTime > 10000) { // timeout after no response for 3 seconds from * write
 		writeKeysPending = false;
 		wroteAsterisk = false;  // Resets the flag that delays writing after '*' is pressed
         writeAsterisk = false;
@@ -594,8 +594,10 @@ void dscKeybusInterface::setWriteKey(const char receivedKey) {
   // Sets the write partition if set by virtual keypad key '/'
   if (setPartition) {
     setPartition = false;
-    if (receivedKey >= '1' && receivedKey <= '8') {
-      writePartition = receivedKey - 48;
+    if (receivedKey >= '1' && receivedKey <= '8' ) {
+		writePartition = receivedKey - 48;
+		if (disabled[writePartition - 1]) writePartition=1; //prevent writes to disabled partitions
+			 
     }
     return;
   }
@@ -806,10 +808,7 @@ void IRAM_ATTR dscKeybusInterface::dscClockInterrupt() {
 
           // Resets counters when the write is complete
           if (isrPanelBitTotal == writeBit + 7) {
-            if (writeAsterisk) {
-				wroteAsterisk = true;  // Delays writing after pressing '*' until the panel is ready
-			
-			}
+            if (writeAsterisk) wroteAsterisk = true;  // Delays writing after pressing '*' until the panel is ready
             else writeKeyPending = false;
             writeStart = false;
           }
