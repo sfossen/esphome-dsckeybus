@@ -335,7 +335,7 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Partition in alarm
       case 0x11: {
-		  break;//testing
+		
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -553,7 +553,7 @@ void dscKeybusInterface::processPanel_0x27() {
       exitState[partitionIndex] = 0;
 	}
     else if ( panelData[messageByte] == 0x011) {
-
+/*
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -574,7 +574,7 @@ void dscKeybusInterface::processPanel_0x27() {
           alarmChanged[partitionIndex] = true;
           if (!pauseStatus) statusChanged = true;
         }
-        break;
+   */
      
 	}
     // Armed with no entry delay
