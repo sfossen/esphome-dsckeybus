@@ -489,12 +489,12 @@ void dscKeybusInterface::processPanelStatus() {
 	 
       default: {
 		if (enable05ArmStatus) { //disable if panel sends a lot of unknown or bogus data on the 05 cmd
-			//ready[partitionIndex] = false;
-			//if (ready[partitionIndex] != previousReady[partitionIndex]) {
-			//previousReady[partitionIndex] = ready[partitionIndex];
-			//readyChanged[partitionIndex] = true;
-			//if (!pauseStatus) statusChanged = true;
-			//}
+			ready[partitionIndex] = false;
+			if (ready[partitionIndex] != previousReady[partitionIndex]) {
+			previousReady[partitionIndex] = ready[partitionIndex];
+			readyChanged[partitionIndex] = true;
+			if (!pauseStatus) statusChanged = true;
+			}
 		}
         break;
       }

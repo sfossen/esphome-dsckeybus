@@ -123,7 +123,7 @@ void alarm_trigger_panic () {
 
  void alarm_keypress(std::string keystring) {
 	  const char* keys =  strcpy(new char[keystring.length() +1],keystring.c_str());
-	   ESP_LOGD("Debug","Writing keys: %s",keystring.c_str());
+	   if (debug) ESP_LOGD("Debug","Writing keys: %s",keystring.c_str());
 	   dsc.write(keys);
  }		
 
@@ -222,7 +222,7 @@ bool isInt(std::string s, int base){
 		if (dsc.accessCodePrompt && dsc.writeReady) {
 			dsc.accessCodePrompt = false;
 			dsc.write(accessCode);
-			ESP_LOGD("Debug","got access code prompt");
+			if (debug) ESP_LOGD("Debug","got access code prompt");
 		}
 
 		if (dsc.troubleChanged ) {
@@ -276,8 +276,9 @@ bool isInt(std::string s, int base){
 			// Publishes ready status
 			if (dsc.readyChanged[partition] ) {
 				dsc.readyChanged[partition] = false;  // Resets the partition alarm status flag
-				if (dsc.ready[partition] ) 	partitionStatusChangeCallback(partition+1,STATUS_OFF ); 
-				else if (!dsc.armed[partition]) partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
+			//	if (dsc.panelData[0] == 0x27 || dsc.status[partition]==0x01 || dsc.status[partition]=0x02) // ignore 05 state change
+					if (dsc.ready[partition] ) 	partitionStatusChangeCallback(partition+1,STATUS_OFF ); 
+					else if (!dsc.armed[partition]) partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
 			}
 
 			// Publishes alarm status
