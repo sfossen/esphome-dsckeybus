@@ -222,6 +222,7 @@ void dscKeybusInterface::processPanelStatus() {
       // Armed
       case 0x04:         // Armed stay
       case 0x05: {       // Armed away
+	    break; //testing
 		if (armed[partitionIndex] || !exitDelay[partitionIndex]) break; //some panels send bogus or duplicate commands
 	    writeArm[partitionIndex] = false;
 	   if (bitRead(panelData[statusByte],1) ) { // look for armed light being set to ensure valid arm message
@@ -334,6 +335,7 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Partition in alarm
       case 0x11: {
+		  break;//testing
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -488,6 +490,7 @@ void dscKeybusInterface::processPanelStatus() {
       }
 	 
       default: {
+
 		if (enable05ArmStatus) { //disable if panel sends a lot of unknown or bogus data on the 05 cmd
 			ready[partitionIndex] = false;
 			if (ready[partitionIndex] != previousReady[partitionIndex]) {
@@ -548,14 +551,35 @@ void dscKeybusInterface::processPanel_0x27() {
       }
 
       exitState[partitionIndex] = 0;
-    }
+	}
+    else if ( panelData[messageByte] == 0x011) {
 
+        ready[partitionIndex] = false;
+        if (ready[partitionIndex] != previousReady[partitionIndex]) {
+          previousReady[partitionIndex] = ready[partitionIndex];
+          readyChanged[partitionIndex] = true;
+          if (!pauseStatus) statusChanged = true;
+        }
+
+        entryDelay[partitionIndex] = false;
+        if (entryDelay[partitionIndex] != previousEntryDelay[partitionIndex]) {
+          previousEntryDelay[partitionIndex] = entryDelay[partitionIndex];
+          entryDelayChanged[partitionIndex] = true;
+          if (!pauseStatus) statusChanged = true;
+        }
+	  
+        alarm[partitionIndex] = true;
+        if (alarm[partitionIndex] != previousAlarm[partitionIndex]) {
+          previousAlarm[partitionIndex] = alarm[partitionIndex];
+          alarmChanged[partitionIndex] = true;
+          if (!pauseStatus) statusChanged = true;
+        }
+        break;
+     
+	}
     // Armed with no entry delay
     else if (panelData[messageByte] == 0x16 || panelData[messageByte] == 0x06) {
-	  if (armed[partitionIndex]) break; //some panels send bogus commands
-	  if (exitState[partitionIndex] != DSC_EXIT_NO_ENTRY_DELAY) break;
       noEntryDelay[partitionIndex] = true;
-
       // Sets an armed mode if not already set, used if interface is initialized while the panel is armed
       if (!armedStay[partitionIndex] && !armedAway[partitionIndex]) armedStay[partitionIndex] = true;
 
