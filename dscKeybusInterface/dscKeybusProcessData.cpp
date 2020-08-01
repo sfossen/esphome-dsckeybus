@@ -223,7 +223,7 @@ void dscKeybusInterface::processPanelStatus() {
       case 0x04:         // Armed stay
       case 0x05: {       // Armed away
 	    break; //testing
-		if (armed[partitionIndex] || !exitDelay[partitionIndex]) break; //some panels send bogus or duplicate commands
+		if (armed[partitionIndex] ) break; //some panels send bogus or duplicate commands
 	    writeArm[partitionIndex] = false;
 	   if (bitRead(panelData[statusByte],1) ) { // look for armed light being set to ensure valid arm message
         if (panelData[messageByte] == 0x04) {
