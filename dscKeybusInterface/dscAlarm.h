@@ -202,7 +202,7 @@ bool isInt(std::string s, int base){
     	 
 		 
 	if (!forceDisconnect )  { dsc.loop();
-		if (debug and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+		//if (debug and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 	}
     if ( dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
 		dsc.statusChanged = false;                   // Reset the status tracking flag
@@ -237,7 +237,14 @@ bool isInt(std::string s, int base){
 			dsc.powerChanged=false;
 			if (dsc.powerTrouble) partitionMsgChangeCallback(1,"AC power failure");
 		}	
-		if (dsc.keypadFireAlarm &&  enable05Messages) partitionMsgChangeCallback(1,"Keypad Fire Alarm");
+		if (dsc.keypadFireAlarm &&  enable05Messages) {
+			dsc.keypadFireAlarm=false;
+			partitionMsgChangeCallback(1,"Keypad Fire Alarm");
+		}
+		if (dsc.keypadPanicAlarm &&  enable05Messages) {
+			dsc.keypadPanicAlarm=false;
+			partitionMsgChangeCallback(1,"Keypad Panic Alarm");
+		}
 	
 	if (debug) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 	 
