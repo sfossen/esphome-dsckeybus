@@ -78,7 +78,9 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
 	systemStatusChangeCallback(STATUS_OFFLINE);
 	forceDisconnect = false;
 	dsc.resetStatus();
+	dsc.processRedundantData=false;
 	dsc.enable05ArmStatus=enable05ArmStatus;
+	dsc.validCmdCount=10;
 	dsc.begin();
 
   }
@@ -299,7 +301,6 @@ bool isInt(std::string s, int base){
 			// Publishes ready status
 			if (dsc.readyChanged[partition] ) {
 				dsc.readyChanged[partition] = false;  // Resets the partition alarm status flag
-			//	if (dsc.panelData[0] == 0x27 || dsc.status[partition]==0x01 || dsc.status[partition]=0x02) // ignore 05 state change
 					if (dsc.ready[partition] ) 	partitionStatusChangeCallback(partition+1,STATUS_OFF ); 
 					else if (!dsc.armed[partition]) partitionStatusChangeCallback(partition+1,STATUS_NOT_READY );
 			}

@@ -34,6 +34,7 @@ void dscKeybusInterface::resetStatus() {
     fireChanged[partition] = true;
 	troubleChanged[partition] = true;
     disabled[partition] = true;
+	cmdCount[partition]=0;
   }
   openZonesStatusChanged = true;
   alarmZonesStatusChanged = true;
@@ -124,6 +125,16 @@ void dscKeybusInterface::processPanelStatus() {
       messageByte = ((partitionIndex - 4) * 2) + 3;
     }
 
+	// here we try and ensure we have validCmdCount of identical 05 cmds for each partition before processing to try and remove bogus states that some panels send
+	if (lastStatus[partitionIndex] == panelData[messageByte] &&  lastLights[partitionIndex] == panelData[statusByte] && lastCmd==panelData[0]) {
+		cmdCount[partitionIndex]++;
+		if (cmdCount[partitionIndex] < validCmdCount) continue;
+	}
+	cmdCount[partitionIndex]=0;
+	lastStatus[partitionIndex] = panelData[messageByte];
+	lastLights[partitionIndex]=panelData[statusByte];
+	
+	
     // Partition disabled status
     if (panelData[messageByte] == 0xC7) disabled[partitionIndex] = true;
     else disabled[partitionIndex] = false;
@@ -142,14 +153,8 @@ void dscKeybusInterface::processPanelStatus() {
       if (!pauseStatus) statusChanged = true;
     }
 	
-	// here we try and ensure we get at least two identical 05 cmds for each partion before processing to try and remove bogus states that some panels send
-	if ((lastStatus[partitionIndex] != status[partitionIndex] ||  lastLights[partitionIndex]!=lights[partitionIndex]) && lastCmd==panelData[0]) {
-		lastStatus[partitionIndex] = status[partitionIndex];
-		lastLights[partitionIndex]=lights[partitionIndex]	;
-		continue;
-	}
-	lastStatus[partitionIndex] = status[partitionIndex];
-	lastLights[partitionIndex]=lights[partitionIndex]	;
+	
+			
 
     // Fire status
     if (panelData[messageByte] < 0x12) {  // Ignores fire light status in intermittent states
@@ -233,8 +238,7 @@ void dscKeybusInterface::processPanelStatus() {
       // Armed
       case 0x04:         // Armed stay
       case 0x05: {       // Armed away
-	    break; //testing
-		if (armed[partitionIndex] ) break; //some panels send bogus or duplicate commands
+	  	if (armed[partitionIndex] ) break; //some panels send bogus or duplicate commands
 	    writeArm[partitionIndex] = false;
 	   if (bitRead(panelData[statusByte],1) ) { // look for armed light being set to ensure valid arm message
         if (panelData[messageByte] == 0x04) {

@@ -139,6 +139,8 @@ class dscKeybusInterface {
 	byte lastCmd;
 	byte lastStatus[dscPartitions];
 	byte lastLights[dscPartitions];
+	byte cmdCount[dscPartitions];
+	byte validCmdCount;
     // Process keypad and module data, returns true if data is available
     bool handleModule();
 
@@ -257,7 +259,7 @@ class dscKeybusInterface {
     bool previousFire[dscPartitions];
 	bool previousTrouble[dscPartitions];
     byte previousOpenZones[dscZones], previousAlarmZones[dscZones];
-
+	
     static byte dscClockPin;
     static byte dscReadPin;
     static byte dscWritePin;
