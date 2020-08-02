@@ -101,7 +101,7 @@ class dscKeybusInterface {
     byte accessCode[dscPartitions];
     bool accessCodeChanged[dscPartitions];
     bool accessCodePrompt;                // True if the panel is requesting an access code
-    bool trouble, troubleChanged;
+    //bool trouble, troubleChanged;
     bool powerTrouble, powerChanged;
     bool batteryTrouble, batteryChanged;
     bool keypadFireAlarm, keypadAuxAlarm, keypadPanicAlarm;
@@ -114,6 +114,7 @@ class dscKeybusInterface {
     byte exitState[dscPartitions], exitStateChanged[dscPartitions];
     bool entryDelay[dscPartitions], entryDelayChanged[dscPartitions];
     bool fire[dscPartitions], fireChanged[dscPartitions];
+	bool trouble[dscPartitions], troubleChanged[dscPartitions];
     bool openZonesStatusChanged;
     byte openZones[dscZones], openZonesChanged[dscZones];    // Zone status is stored in an array using 1 bit per zone, up to 64 zones
     bool alarmZonesStatusChanged;
@@ -135,7 +136,9 @@ class dscKeybusInterface {
     // printPanelLights() in dscKeybusPrintData.cpp to see how this data translates to the status message and LED status.
     byte status[dscPartitions];
     byte lights[dscPartitions];
-
+	byte lastCmd;
+	byte lastStatus[dscPartitions];
+	byte lastLights[dscPartitions];
     // Process keypad and module data, returns true if data is available
     bool handleModule();
 
@@ -241,7 +244,8 @@ class dscKeybusInterface {
     bool writeKeysPending;
     bool writeArm[dscPartitions];
     bool queryResponse;
-    bool previousTrouble;
+    //bool previousTrouble;
+	
     bool previousKeybus;
     byte previousAccessCode[dscPartitions];
     byte previousLights[dscPartitions], previousStatus[dscPartitions];
@@ -251,6 +255,7 @@ class dscKeybusInterface {
     bool previousArmed[dscPartitions], previousArmedStay[dscPartitions];
     bool previousAlarm[dscPartitions];
     bool previousFire[dscPartitions];
+	bool previousTrouble[dscPartitions];
     byte previousOpenZones[dscZones], previousAlarmZones[dscZones];
 
     static byte dscClockPin;

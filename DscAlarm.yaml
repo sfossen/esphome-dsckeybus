@@ -1,7 +1,7 @@
 #for documentation see project at https://github.com/Dilbert66/esphome-dsckeybus
 substitutions:
   accessCode: !secret access_code #Only comes into effect if a password prompt occurs when arming (if set that way on the panel)
-  enable05ArmStatus: "false" #set to false if you get false triggers for arm/trouble/etc alarms 
+  enable05ArmStatus: "true" #set to false if you get false triggers for arm/trouble/etc alarms 
   enable05Messages: "false" #set to false if you get a lot of bogus displayed messages for arm/trouble/etc alarms 
 
 esphome:
@@ -58,9 +58,10 @@ custom_component:
          case 2: id(m2).publish_state(msg); break;
       }
     });
-    
-     DSCkeybus->onTroubleStatusChange([&](bool open) {
-        id(trouble_status).publish_state(open);
+     DSCkeybus->onTroubleStatusChange([&](uint8_t partition, bool open) {
+        switch (partition) {
+          case 1: id(t1).publish_state(open); break;
+      }
     });
     
     DSCkeybus->onFireStatusChange([&](uint8_t partition, bool open) {
@@ -132,7 +133,7 @@ binary_sensor:
     name: "Main floor motion"
     device_class: motion
   - platform: template
-    id: trouble_status
+    id: t1
     name: "Trouble Status"
     device_class: problem
   - platform: template

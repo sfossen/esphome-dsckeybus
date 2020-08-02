@@ -219,7 +219,7 @@ bool dscKeybusInterface::loop() {
   // Sets writeReady status
   if (!writeKeyPending && !writeKeysPending) writeReady = true;
   else writeReady = false;
-
+  
   // Skips redundant data sent constantly while in installer programming
   static byte previousCmd0A[dscReadSize];
   static byte previousCmdE6_20[dscReadSize];
@@ -304,6 +304,7 @@ bool dscKeybusInterface::loop() {
     case 0xE6: if (dscPartitions > 2) processPanel_0xE6(); break;
     case 0xEB: if (dscPartitions > 2) processPanel_0xEB(); break;
   }
+  lastCmd=panelData[0];
 
   return true;
 }

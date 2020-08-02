@@ -24,7 +24,7 @@
 void dscKeybusInterface::resetStatus() {
   statusChanged = true;
   keybusChanged = true;
-  troubleChanged = true;
+  //troubleChanged = true;
   powerChanged = true;
   batteryChanged = true;
   for (byte partition = 0; partition < dscPartitions; partition++) {
@@ -32,6 +32,7 @@ void dscKeybusInterface::resetStatus() {
     armedChanged[partition] = true;
     alarmChanged[partition] = true;
     fireChanged[partition] = true;
+	troubleChanged[partition] = true;
     disabled[partition] = true;
   }
   openZonesStatusChanged = true;
@@ -95,7 +96,7 @@ bool dscKeybusInterface::setTime(unsigned int year, byte month, byte day, byte h
 // Processes status commands: 0x05 (Partitions 1-4) and 0x1B (Partitions 5-8)
 void dscKeybusInterface::processPanelStatus() {
 
- 
+  
 
   // Sets partition counts based on the status command and generation of panel
   byte partitionStart = 0;
@@ -140,6 +141,15 @@ void dscKeybusInterface::processPanelStatus() {
       previousStatus[partitionIndex] = status[partitionIndex];
       if (!pauseStatus) statusChanged = true;
     }
+	
+	// here we try and ensure we get at least two identical 05 cmds for each partion before processing to try and remove bogus states that some panels send
+	if ((lastStatus[partitionIndex] != status[partitionIndex] ||  lastLights[partitionIndex]!=lights[partitionIndex]) && lastCmd==panelData[0]) {
+		lastStatus[partitionIndex] = status[partitionIndex];
+		lastLights[partitionIndex]=lights[partitionIndex]	;
+		continue;
+	}
+	lastStatus[partitionIndex] = status[partitionIndex];
+	lastLights[partitionIndex]=lights[partitionIndex]	;
 
     // Fire status
     if (panelData[messageByte] < 0x12) {  // Ignores fire light status in intermittent states
@@ -152,15 +162,16 @@ void dscKeybusInterface::processPanelStatus() {
         if (!pauseStatus) statusChanged = true;
       }
     }
+	
 	// Trouble status
 	if (panelData[messageByte] <= 0x05) {  // Ignores trouble light status in intermittent states
-		if (bitRead(panelData[statusByte],4)) trouble = true; 
-			else trouble = false;
-			if (trouble != previousTrouble) {
-			previousTrouble = trouble;
-			troubleChanged = true;
+		if (bitRead(panelData[statusByte],4)) trouble[partitionIndex] = true; 
+			else trouble[partitionIndex] = false;
+		if (trouble[partitionIndex] != previousTrouble[partitionIndex]) {
+			previousTrouble[partitionIndex] = trouble[partitionIndex];
+			troubleChanged[partitionIndex] = true;
 			if (!pauseStatus) statusChanged = true;
-		}
+      }
 	}
 
     // Messages
