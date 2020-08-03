@@ -130,17 +130,14 @@ class dscKeybusInterface {
     //            ^ Byte 1 (stop bit)
     static byte panelData[dscReadSize];
     static volatile byte moduleData[dscReadSize];
-
+	
     // status[] and lights[] store the current status message and LED state for each partition.  These can be accessed
     // directly in the sketch to get data that is not already tracked in the library.  See printPanelMessages() and
     // printPanelLights() in dscKeybusPrintData.cpp to see how this data translates to the status message and LED status.
     byte status[dscPartitions];
     byte lights[dscPartitions];
-	byte lastCmd;
-	byte lastStatus[dscPartitions];
-	byte lastLights[dscPartitions];
-	byte cmdCount[dscPartitions];
-	byte validCmdCount;
+    static byte lastPanelData[dscReadSize];
+	static unsigned long cmdWaitTime;
     // Process keypad and module data, returns true if data is available
     bool handleModule();
 
@@ -270,7 +267,7 @@ class dscKeybusInterface {
     static volatile bool writeKeyPending;
     static volatile bool writeAlarm, writeAsterisk, wroteAsterisk;
     static volatile bool moduleDataCaptured;
-	static volatile unsigned long clockHighTime, keybusTime, waitTime;
+	static volatile unsigned long clockHighTime, keybusTime, waitTime, cmdTime;
     static volatile byte panelBufferLength;
     static volatile byte panelBuffer[dscBufferSize][dscReadSize];
     static volatile byte panelBufferBitCount[dscBufferSize], panelBufferByteCount[dscBufferSize];

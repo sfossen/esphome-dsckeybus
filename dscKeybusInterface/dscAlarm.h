@@ -19,13 +19,15 @@ void disconnectKeybus() {
 
 class DSCkeybushome : public Component, public CustomAPIDevice {
  public:
-   DSCkeybushome( const char *accessCode="", bool enable05ArmStatus = true, bool enable05Messages=true)
-   :  accessCode(accessCode)
-   ,  enable05ArmStatus(enable05ArmStatus)
-    , enable05Messages(enable05Messages)
+   DSCkeybushome( const char *accessCode="", bool enable05ArmStatus = true, bool enable05Messages=true, unsigned long cmdWaitTime=0.0)
+   : accessCode(accessCode)
+   , enable05ArmStatus(enable05ArmStatus)
+   , enable05Messages(enable05Messages)
+   , cmdWaitTime(cmdWaitTime)
   {}
  
   std::function<void (uint8_t, bool)> zoneStatusChangeCallback;
+  std::function<void (uint8_t, bool)> zoneAlarmChangeCallback;
   std::function<void (std::string)> systemStatusChangeCallback;
   std::function<void (uint8_t, bool)> troubleStatusChangeCallback;
   std::function<void (uint8_t, bool)> fireStatusChangeCallback;
@@ -49,6 +51,7 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
   const std::string MSG_NONE = "no_messages";
  
   void onZoneStatusChange(std::function<void (uint8_t zone, bool isOpen)> callback) { zoneStatusChangeCallback = callback; }
+  void onZoneAlarmChange(std::function<void (uint8_t zone, bool isOpen)> callback) { zoneAlarmChangeCallback = callback; }
   void onSystemStatusChange(std::function<void (std::string status)> callback) { systemStatusChangeCallback = callback; }
   void onFireStatusChange(std::function<void (uint8_t partition, bool isOpen)> callback) { fireStatusChangeCallback = callback; }
   void onTroubleStatusChange(std::function<void (uint8_t partition, bool isOpen)> callback) { troubleStatusChangeCallback = callback; }
@@ -56,9 +59,11 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
   void onPartitionMsgChange(std::function<void (uint8_t partition,std::string msg)> callback) { partitionMsgChangeCallback = callback; }
   
   bool debug = false;
+  bool verbose = false;
   const char *accessCode;
   bool enable05ArmStatus; 
   bool enable05Messages;
+  unsigned long cmdWaitTime;
   
   private:
     uint8_t zone;
@@ -78,9 +83,8 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
 	systemStatusChangeCallback(STATUS_OFFLINE);
 	forceDisconnect = false;
 	dsc.resetStatus();
-	dsc.processRedundantData=false;
 	dsc.enable05ArmStatus=enable05ArmStatus;
-	dsc.validCmdCount=10;
+	dsc.cmdWaitTime=cmdWaitTime;
 	dsc.begin();
 
   }
@@ -202,8 +206,10 @@ bool isInt(std::string s, int base){
   void loop() override {
     	 
 		 
-	if (!forceDisconnect )  { dsc.loop();
-		//if (debug and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	if (!forceDisconnect  && dsc.loop())  { 
+		if (verbose and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+		//if (verbose and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11a","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.lastPanelData[0],dsc.lastPanelData[1],dsc.lastPanelData[2],dsc.lastPanelData[3],dsc.lastPanelData[4],dsc.lastPanelData[5],dsc.lastPanelData[6]);
+		
 	}
     if ( dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
 		dsc.statusChanged = false;                   // Reset the status tracking flag
@@ -261,8 +267,8 @@ bool isInt(std::string s, int base){
 		
 		if (debug) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
 		 
-			if (dsc.lastStatus[partition] != dsc.status[partition]  ) {
-			//	lastStatus[partition]=dsc.status[partition];
+			if (lastStatus[partition] != dsc.status[partition]  ) {
+				lastStatus[partition]=dsc.status[partition];
 				char msg[50];
 				sprintf(msg,"%02X: %s", dsc.status[partition], String(statusText(dsc.status[partition])).c_str());
 				if (enable05Messages) partitionMsgChangeCallback(partition+1,msg);
@@ -338,6 +344,27 @@ bool isInt(std::string s, int base){
 							zoneStatusChangeCallback(zone, true);  // Zone open
 						}
 						else  zoneStatusChangeCallback(zone, false);        // Zone closed
+					}
+				}
+			}
+		}
+		
+		// Zone alarm status is stored in the alarmZones[] and alarmZonesChanged[] arrays using 1 bit per zone, up to 64 zones
+		//   alarmZones[0] and alarmZonesChanged[0]: Bit 0 = Zone 1 ... Bit 7 = Zone 8
+		//   alarmZones[1] and alarmZonesChanged[1]: Bit 0 = Zone 9 ... Bit 7 = Zone 16
+		//   ...
+		//   alarmZones[7] and alarmZonesChanged[7]: Bit 0 = Zone 57 ... Bit 7 = Zone 64	
+		if (dsc.alarmZonesStatusChanged  ) {
+			dsc.alarmZonesStatusChanged = false;                           // Resets the alarm zones status flag
+			for (byte zoneGroup = 0; zoneGroup < dscZones; zoneGroup++) {
+				for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
+					if (bitRead(dsc.alarmZonesChanged[zoneGroup], zoneBit)) {  // Checks an individual alarm zone status flag
+						bitWrite(dsc.alarmZonesChanged[zoneGroup], zoneBit, 0);  // Resets the individual alarm zone status flag
+						zone=zoneBit + 1 + (zoneGroup * 8);
+						if (bitRead(dsc.alarmZones[zoneGroup], zoneBit)) {
+							zoneAlarmChangeCallback(zone, true);  // Zone alarm
+						}
+						else  zoneAlarmChangeCallback(zone, false);        // Zone restored
 					}
 				}
 			}

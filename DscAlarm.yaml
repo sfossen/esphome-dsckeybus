@@ -2,7 +2,8 @@
 substitutions:
   accessCode: !secret access_code #Only comes into effect if a password prompt occurs when arming (if set that way on the panel)
   enable05ArmStatus: "true" #set to false if you get false triggers for arm/trouble/etc alarms 
-  enable05Messages: "false" #set to false if you get a lot of bogus displayed messages for arm/trouble/etc alarms 
+  enable05Messages: "true" #set to false if you get a lot of bogus displayed messages for arm/trouble/etc alarms 
+  cmdWaitTime: "250" # set how long to delay before accepting a new 05 cmd as valid. 
 
 esphome:
   name: alarm
@@ -38,9 +39,10 @@ status_led:
 
 custom_component:
 - lambda: |-
-    auto DSCkeybus = new DSCkeybushome("$accessCode",$enable05ArmStatus,$enable05Messages);
+    auto DSCkeybus = new DSCkeybushome("$accessCode",$enable05ArmStatus,$enable05Messages,$cmdWaitTime);
     
-    DSCkeybus->debug=true; //set to false to remove debug status prints
+    DSCkeybus->debug=true; //set to true to show panel and partition data on changes
+    DSCkeybus->verbose=true; //set to true to show all 05/27 packets received
   
     DSCkeybus->onSystemStatusChange([&](std::string statusCode) {
        id(system_status).publish_state(statusCode);
@@ -85,9 +87,25 @@ custom_component:
         case 11: id(z11).publish_state(open); break;
       }
     });
+    DSCkeybus->onZoneAlarmChange([&](uint8_t zone, bool open) {
+      switch (zone) {
+        case 1: id(za1).publish_state(open); break;
+        case 2: id(za2).publish_state(open); break;
+        case 3: id(za3).publish_state(open); break;
+        case 4: id(za4).publish_state(open); break;
+        case 5: id(za5).publish_state(open); break;
+        case 6: id(za6).publish_state(open); break;
+        case 7: id(za7).publish_state(open); break;
+        case 8: id(za8).publish_state(open); break;
+        case 9: id(za9).publish_state(open); break;
+        case 10: id(za10).publish_state(open); break;
+        case 11: id(za11).publish_state(open); break;
+      }
+    });
     return {DSCkeybus};
 
 binary_sensor:
+    #zone status
   - platform: template
     id: z1
     name: "Front door"
@@ -132,10 +150,58 @@ binary_sensor:
     id: z11
     name: "Main floor motion"
     device_class: motion
+    
+    #zone alarm status
+  - platform: template
+    id: za1
+    name: "Front door alarm"
+    #device_class: safety
+  - platform: template
+    id: za2
+    name: "Garage door alarm"
+    device_class: safety
+  - platform: template
+    id: za3
+    name: "Back door alarm"
+    device_class: safety
+  - platform: template
+    id: za4
+    name: "Living room window alarm"
+    device_class: safety
+  - platform: template
+    id: za5
+    name: "Dining room window alarm"
+    device_class: safety
+  - platform: template
+    id: za6
+    name: "Family room window LF alarm"
+    device_class: safety
+  - platform: template
+    id: za7
+    name: "Family room window RF alarm"
+    device_class: safety
+  - platform: template
+    id: za8
+    name: "Basement windows alarm"
+    device_class: safety
+  - platform: template
+    id: za9
+    name: "Upstairs motion alarm"
+    device_class: safety
+  - platform: template
+    id: za10
+    name: "Basement motion alarm"
+    device_class: safety
+  - platform: template
+    id: za11
+    name: "Main floor motion alarm"
+    device_class: safety
+    
   - platform: template
     id: t1
     name: "Trouble Status"
     device_class: problem
+    
   - platform: template
     id: f1
     device_class: safety
