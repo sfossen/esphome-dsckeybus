@@ -1,9 +1,8 @@
 #for documentation see project at https://github.com/Dilbert66/esphome-dsckeybus
 substitutions:
   accessCode: !secret access_code #Only comes into effect if a password prompt occurs when arming (if set that way on the panel)
-  enable05ArmStatus: "true" #set to false if you get false triggers for arm/trouble/etc alarms 
-  enable05Messages: "true" #set to false if you get a lot of bogus displayed messages for arm/trouble/etc alarms 
-  cmdWaitTime: "250" # set how long to delay before accepting a new 05 cmd as valid. 
+  cmdWaitTime: "250" # milliseconds.  set how long to delay before accepting a new 05 cmd as valid to filter out intermittent short duration bogus commands that some panels send. default = 0
+  enable05Messages: "true"
 
 esphome:
   name: alarm
@@ -23,7 +22,7 @@ wifi:
 
 logger:
   baud_rate: 0
-  level: debug
+  level: verbose
 
 api:
    password: !secret api_password  
@@ -39,15 +38,16 @@ status_led:
 
 custom_component:
 - lambda: |-
-    auto DSCkeybus = new DSCkeybushome("$accessCode",$enable05ArmStatus,$enable05Messages,$cmdWaitTime);
+    auto DSCkeybus = new DSCkeybushome();
     
-    DSCkeybus->debug=true; //set to true to show panel and partition data on changes
-    DSCkeybus->verbose=true; //set to true to show all 05/27 packets received
-  
+    DSCkeybus->accessCode="$accessCode";
+    DSCkeybus->cmdWaitTime=$cmdWaitTime;
+    DSCkeybus->enable05Messages=$enable05Messages;
+    DSCkeybus->debug=2; // 0 = off, 1 = status change data, 2 = + 05/27 packets, 3 = + all packets received
+    
     DSCkeybus->onSystemStatusChange([&](std::string statusCode) {
        id(system_status).publish_state(statusCode);
     });
-    
     DSCkeybus->onPartitionStatusChange([&](uint8_t partition,std::string statusCode) {
        switch(partition) {
          case 1: id(p1).publish_state(statusCode); break;
@@ -65,13 +65,11 @@ custom_component:
           case 1: id(t1).publish_state(open); break;
       }
     });
-    
     DSCkeybus->onFireStatusChange([&](uint8_t partition, bool open) {
       switch (partition) {
           case 1: id(f1).publish_state(open); break;
       }
     });
-    
     DSCkeybus->onZoneStatusChange([&](uint8_t zone, bool open) {
       switch (zone) {
         case 1: id(z1).publish_state(open); break;
@@ -159,43 +157,43 @@ binary_sensor:
   - platform: template
     id: za2
     name: "Garage door alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za3
     name: "Back door alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za4
     name: "Living room window alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za5
     name: "Dining room window alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za6
     name: "Family room window LF alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za7
     name: "Family room window RF alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za8
     name: "Basement windows alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za9
     name: "Upstairs motion alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za10
     name: "Basement motion alarm"
-    device_class: safety
+    #device_class: safety
   - platform: template
     id: za11
     name: "Main floor motion alarm"
-    device_class: safety
+    #device_class: safety
     
   - platform: template
     id: t1
@@ -228,9 +226,7 @@ text_sensor:
     id: m2
     name: "Partition 2 Msg "
     icon: "mdi:alert-box"
-
-    
-      
+     
 switch:
   - platform: template
     name: "Alarm Connection"

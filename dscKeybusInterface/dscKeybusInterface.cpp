@@ -78,8 +78,7 @@ dscKeybusInterface::dscKeybusInterface(byte setClockPin, byte setReadPin, byte s
   processModuleData = false;
   writePartition = 1;
   pauseStatus = false;
-  enable05ArmStatus=true;
-  cmdWaitTime=500;
+  cmdWaitTime=0;
 }
 
 
@@ -151,6 +150,7 @@ void dscKeybusInterface::stop() {
   isrModuleByteCount = 0;
 }
 
+bool dscKeybusInterface::handlePanel() { return loop(); }
 
 bool dscKeybusInterface::loop() {
 
@@ -551,11 +551,11 @@ bool dscKeybusInterface::redundantPanelData(byte previousCmd[], volatile byte cu
       break;
     }
   }
- // if (redundantData) return true;
- // else {
+  if (redundantData) return true;
+  else {
     for (byte i = 0; i < checkedBytes; i++) previousCmd[i] = currentCmd[i];
-   // return false;
- // }
+    return false;
+  }
  return redundantData;
 }
 
@@ -804,8 +804,17 @@ void IRAM_ATTR dscKeybusInterface::dscDataInterrupt() {
           break;
 
         case 0x1B:  // Status: partitions 5-8
-          if ( redundantPanelData(previousCmd1B, isrPanelData, isrPanelByteCount)) skipData = true;
-		  else cmdTime = millis();
+           if (redundantPanelData(previousCmd1B, isrPanelData, isrPanelByteCount)){
+			 if (!goodCmd && (millis() - cmdTime) > cmdWaitTime) {
+				 skipData=false;
+				 goodCmd=true;
+			 }
+			 else skipData = true;
+		} else {
+			 cmdTime = millis();
+			 skipData=true;
+			 goodCmd=false;
+		 }
           break;
       }
 

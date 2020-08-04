@@ -19,9 +19,8 @@ void disconnectKeybus() {
 
 class DSCkeybushome : public Component, public CustomAPIDevice {
  public:
-   DSCkeybushome( const char *accessCode="", bool enable05ArmStatus = true, bool enable05Messages=true, unsigned long cmdWaitTime=0.0)
+   DSCkeybushome( const char *accessCode="",  bool enable05Messages=true, unsigned long cmdWaitTime=0)
    : accessCode(accessCode)
-   , enable05ArmStatus(enable05ArmStatus)
    , enable05Messages(enable05Messages)
    , cmdWaitTime(cmdWaitTime)
   {}
@@ -58,10 +57,8 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
   void onPartitionStatusChange(std::function<void (uint8_t partition,std::string status)> callback) { partitionStatusChangeCallback = callback; }
   void onPartitionMsgChange(std::function<void (uint8_t partition,std::string msg)> callback) { partitionMsgChangeCallback = callback; }
   
-  bool debug = false;
-  bool verbose = false;
+  byte debug;
   const char *accessCode;
-  bool enable05ArmStatus; 
   bool enable05Messages;
   unsigned long cmdWaitTime;
   
@@ -83,10 +80,8 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
 	systemStatusChangeCallback(STATUS_OFFLINE);
 	forceDisconnect = false;
 	dsc.resetStatus();
-	dsc.enable05ArmStatus=enable05ArmStatus;
 	dsc.cmdWaitTime=cmdWaitTime;
 	dsc.begin();
-
   }
   
 
@@ -128,7 +123,7 @@ void alarm_trigger_panic () {
 
  void alarm_keypress(std::string keystring) {
 	  const char* keys =  strcpy(new char[keystring.length() +1],keystring.c_str());
-	   if (debug) ESP_LOGD("Debug","Writing keys: %s",keystring.c_str());
+	   if (debug > 0) ESP_LOGD("Debug","Writing keys: %s",keystring.c_str());
 	   dsc.write(keys);
  }		
 
@@ -171,11 +166,11 @@ bool isInt(std::string s, int base){
 		dsc.writePartition = partition+1;         // Sets writes to the partition number
 		strcpy(cmd,"*9");
 	
-		if (debug) ESP_LOGD("Debug","Writing keys: %s, [%s], %d",cmd,accessCode,code.length());
+		if (debug > 0) ESP_LOGD("Debug","Writing keys: %s, [%s], %d",cmd,accessCode,code.length());
 		if (code.length() == 4 ) { // ensure we get 4 digit code
 			dsc.write(cmd);
 			dsc.write(accessCode);
-		if (debug)	ESP_LOGD("Debug","Writing keys: %s,[%s],%d",cmd,accessCode,strlen(accessCode));
+		if (debug > 0)	ESP_LOGD("Debug","Writing keys: %s,[%s],%d",cmd,accessCode,strlen(accessCode));
 		}
 	}
 	// Fire command
@@ -207,9 +202,11 @@ bool isInt(std::string s, int base){
     	 
 		 
 	if (!forceDisconnect  && dsc.loop())  { 
-		if (verbose and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
-		//if (verbose and (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11a","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.lastPanelData[0],dsc.lastPanelData[1],dsc.lastPanelData[2],dsc.lastPanelData[3],dsc.lastPanelData[4],dsc.lastPanelData[5],dsc.lastPanelData[6]);
-		
+	
+		if (debug > 1 && (dsc.panelData[0] == 0x05 || dsc.panelData[0]==0x27)) ESP_LOGD("Debug11","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6],dsc.panelData[7],dsc.panelData[8],dsc.panelData[9],dsc.panelData[10],dsc.panelData[11]);
+	
+		if (debug > 2 ) ESP_LOGD("Debug11","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6],dsc.panelData[7],dsc.panelData[8],dsc.panelData[9],dsc.panelData[10],dsc.panelData[11]);
+	
 	}
     if ( dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
 		dsc.statusChanged = false;                   // Reset the status tracking flag
@@ -231,22 +228,18 @@ bool isInt(std::string s, int base){
 		if (dsc.accessCodePrompt && dsc.writeReady) {
 			dsc.accessCodePrompt = false;
 			dsc.write(accessCode);
-			if (debug) ESP_LOGD("Debug","got access code prompt");
+			if (debug > 0) ESP_LOGD("Debug","got access code prompt");
 		}
-		
-		
 		
 /*
-		if (dsc.troubleChanged ) {
-			dsc.troubleChanged = false;  // Resets the trouble status flag
-			if (dsc.trouble) troubleStatusChangeCallback(true);
-			else troubleStatusChangeCallback(false);
-		}
-		
 		// testing
 		if (dsc.powerChanged && enable05Messages) {
 			dsc.powerChanged=false;
 			if (dsc.powerTrouble) partitionMsgChangeCallback(1,"AC power failure");
+		}	
+		if (dsc.batteryChanged && enable05Messages) {
+			dsc.batteryChanged=false;
+			if (dsc.batteryTrouble) partitionMsgChangeCallback(1,"Battery trouble");
 		}	
 		if (dsc.keypadFireAlarm &&  enable05Messages) {
 			dsc.keypadFireAlarm=false;
@@ -258,14 +251,14 @@ bool isInt(std::string s, int base){
 		}
 	*/
 	
-	if (debug) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	if (debug > 0) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
 	 
 		// Publishes status per partition
 		for (byte partition = 0; partition < dscPartitions; partition++) {
 			
 		if (dsc.disabled[partition]) continue; //skip disabled or partitions in install programming	
 		
-		if (debug) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
+		if (debug > 0) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
 		 
 			if (lastStatus[partition] != dsc.status[partition]  ) {
 				lastStatus[partition]=dsc.status[partition];

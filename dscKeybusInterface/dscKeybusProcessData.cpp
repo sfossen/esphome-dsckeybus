@@ -97,8 +97,6 @@ bool dscKeybusInterface::setTime(unsigned int year, byte month, byte day, byte h
 // Processes status commands: 0x05 (Partitions 1-4) and 0x1B (Partitions 5-8)
 void dscKeybusInterface::processPanelStatus() {
 
-  
-
   // Sets partition counts based on the status command and generation of panel
   byte partitionStart = 0;
   byte partitionCount = 0;
@@ -225,7 +223,6 @@ void dscKeybusInterface::processPanelStatus() {
       // Armed
       case 0x04:         // Armed stay
       case 0x05: {       // Armed away
-		//if (armed[partitionIndex] ) break; //some panels send bogus or duplicate commands
 	    writeArm[partitionIndex] = false;
 	   if (bitRead(panelData[statusByte],1) ) { // look for armed light being set to ensure valid arm message
         if (panelData[messageByte] == 0x04) {
@@ -317,7 +314,7 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Entry delay in progress
       case 0x0C: {
-		if (!armed[partitionIndex]) break; //some panels send bogus commands
+		//if (!armed[partitionIndex]) break; //some panels send bogus commands
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -336,7 +333,6 @@ void dscKeybusInterface::processPanelStatus() {
 
       // Partition in alarm
       case 0x11: {
-		
         ready[partitionIndex] = false;
         if (ready[partitionIndex] != previousReady[partitionIndex]) {
           previousReady[partitionIndex] = ready[partitionIndex];
@@ -374,9 +370,7 @@ void dscKeybusInterface::processPanelStatus() {
       // Partition armed with no entry delay
 	  case 0x06:
       case 0x16: {
-	   if (armed[partitionIndex]) break; //some panels send bogus commands
 	   if (exitState[partitionIndex] != DSC_EXIT_NO_ENTRY_DELAY) break;
-	   
         noEntryDelay[partitionIndex] = true;
 
         // Sets an armed mode if not already set, used if interface is initialized while the panel is armed
@@ -491,15 +485,12 @@ void dscKeybusInterface::processPanelStatus() {
       }
 	 
       default: {
-
-		if (enable05ArmStatus) { //disable if panel sends a lot of unknown or bogus data on the 05 cmd
-			ready[partitionIndex] = false;
-			if (ready[partitionIndex] != previousReady[partitionIndex]) {
-			previousReady[partitionIndex] = ready[partitionIndex];
-			readyChanged[partitionIndex] = true;
-			if (!pauseStatus) statusChanged = true;
-			}
-		}
+		ready[partitionIndex] = false;
+		if (ready[partitionIndex] != previousReady[partitionIndex]) {
+		previousReady[partitionIndex] = ready[partitionIndex];
+		readyChanged[partitionIndex] = true;
+		if (!pauseStatus) statusChanged = true;
+	  }
         break;
       }
     }
