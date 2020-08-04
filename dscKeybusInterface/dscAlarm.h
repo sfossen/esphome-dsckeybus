@@ -8,7 +8,6 @@
 dscKeybusInterface dsc(dscClockPin, dscReadPin, dscWritePin);
 bool forceDisconnect;
 
-
 void disconnectKeybus() {
   dsc.stop();
   dsc.keybusConnected = false;
@@ -19,9 +18,8 @@ void disconnectKeybus() {
 
 class DSCkeybushome : public Component, public CustomAPIDevice {
  public:
-   DSCkeybushome( const char *accessCode="",  bool enable05Messages=true, unsigned long cmdWaitTime=0)
+   DSCkeybushome( const char *accessCode="",  unsigned long cmdWaitTime=0)
    : accessCode(accessCode)
-   , enable05Messages(enable05Messages)
    , cmdWaitTime(cmdWaitTime)
   {}
  
@@ -59,7 +57,7 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
   
   byte debug;
   const char *accessCode;
-  bool enable05Messages;
+  bool enable05Messages = true;
   unsigned long cmdWaitTime;
   
   private:
@@ -76,11 +74,10 @@ class DSCkeybushome : public Component, public CustomAPIDevice {
 	register_service(&DSCkeybushome::alarm_trigger_panic,"alarm_trigger_panic");
 	register_service(&DSCkeybushome::alarm_trigger_fire,"alarm_trigger_fire");
     register_service(&DSCkeybushome::alarm_keypress, "alarm_keypress",{"keys"});
-
 	systemStatusChangeCallback(STATUS_OFFLINE);
 	forceDisconnect = false;
-	dsc.resetStatus();
 	dsc.cmdWaitTime=cmdWaitTime;
+	dsc.resetStatus();
 	dsc.begin();
   }
   
@@ -208,6 +205,7 @@ bool isInt(std::string s, int base){
 		if (debug > 2 ) ESP_LOGD("Debug11","Panel data: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6],dsc.panelData[7],dsc.panelData[8],dsc.panelData[9],dsc.panelData[10],dsc.panelData[11]);
 	
 	}
+	
     if ( dsc.statusChanged ) {   // Processes data only when a valid Keybus command has been read
 		dsc.statusChanged = false;                   // Reset the status tracking flag
 			 
@@ -231,8 +229,7 @@ bool isInt(std::string s, int base){
 			if (debug > 0) ESP_LOGD("Debug","got access code prompt");
 		}
 		
-/*
-		// testing
+
 		if (dsc.powerChanged && enable05Messages) {
 			dsc.powerChanged=false;
 			if (dsc.powerTrouble) partitionMsgChangeCallback(1,"AC power failure");
@@ -249,16 +246,16 @@ bool isInt(std::string s, int base){
 			dsc.keypadPanicAlarm=false;
 			partitionMsgChangeCallback(1,"Keypad Panic Alarm");
 		}
-	*/
 	
-	if (debug > 0) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6]);
+	
+	if (debug > 0) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2],dsc.panelData[3],dsc.panelData[4],dsc.panelData[5],dsc.panelData[6],dsc.panelData[7],dsc.panelData[8],dsc.panelData[9]);
 	 
 		// Publishes status per partition
 		for (byte partition = 0; partition < dscPartitions; partition++) {
 			
 		if (dsc.disabled[partition]) continue; //skip disabled or partitions in install programming	
 		
-		if (debug > 0) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.status[partition], dsc.lights[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
+		if (debug > 0) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.lights[partition], dsc.status[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
 		 
 			if (lastStatus[partition] != dsc.status[partition]  ) {
 				lastStatus[partition]=dsc.status[partition];
@@ -387,6 +384,7 @@ const __FlashStringHelper *statusText(uint8_t statusCode)
         case 0x14: return F("Auto-arm");
         case 0x15: return F("Arm with bypass");
         case 0x16: return F("No entry delay");
+		case 0x17: return F("Power failure");//??? not sure
         case 0x22: return F("Alarm memory");
         case 0x33: return F("Busy");
         case 0x3D: return F("Disarmed");

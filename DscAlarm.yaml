@@ -2,7 +2,6 @@
 substitutions:
   accessCode: !secret access_code #Only comes into effect if a password prompt occurs when arming (if set that way on the panel)
   cmdWaitTime: "250" # milliseconds.  set how long to delay before accepting a new 05 cmd as valid to filter out intermittent short duration bogus commands that some panels send. default = 0
-  enable05Messages: "true"
 
 esphome:
   name: alarm
@@ -22,7 +21,7 @@ wifi:
 
 logger:
   baud_rate: 0
-  level: verbose
+  level: debug
 
 api:
    password: !secret api_password  
@@ -42,7 +41,6 @@ custom_component:
     
     DSCkeybus->accessCode="$accessCode";
     DSCkeybus->cmdWaitTime=$cmdWaitTime;
-    DSCkeybus->enable05Messages=$enable05Messages;
     DSCkeybus->debug=2; // 0 = off, 1 = status change data, 2 = + 05/27 packets, 3 = + all packets received
     
     DSCkeybus->onSystemStatusChange([&](std::string statusCode) {
