@@ -42,7 +42,6 @@ custom_component:
     auto DSCkeybus = new DSCkeybushome();
     
     DSCkeybus->accessCode="$accessCode";
-    DSCkeybus->cmdWaitTime=$cmdWaitTime;
     DSCkeybus->debug=2; // 0 = off, 1 = status change data, 2 = + 05/27 packets, 3 = + all packets received
     
     DSCkeybus->onSystemStatusChange([&](std::string statusCode) {
@@ -51,13 +50,11 @@ custom_component:
     DSCkeybus->onPartitionStatusChange([&](uint8_t partition,std::string statusCode) {
        switch(partition) {
          case 1: id(p1).publish_state(statusCode); break;
-         case 2: id(p2).publish_state(statusCode); break;
       }
     });
     DSCkeybus->onPartitionMsgChange([&](uint8_t partition,std::string msg) {
        switch(partition) {
          case 1: id(m1).publish_state(msg); break;
-         case 2: id(m2).publish_state(msg); break;
       }
     });
     DSCkeybus->onTroubleStatusChange([&](troubleStatus ts,bool open) {
@@ -87,6 +84,11 @@ custom_component:
         case 9: id(z9).publish_state(open); break;
         case 10: id(z10).publish_state(open); break;
         case 11: id(z11).publish_state(open); break;
+        case 12: id(z12).publish_state(open); break;
+        case 13: id(z13).publish_state(open); break;
+        case 14: id(z14).publish_state(open); break;
+        case 15: id(z15).publish_state(open); break;
+        case 16: id(z16).publish_state(open); break;
       }
     });
     DSCkeybus->onZoneAlarmChange([&](uint8_t zone, bool open) {
@@ -97,11 +99,6 @@ custom_component:
         case 4: id(za4).publish_state(open); break;
         case 5: id(za5).publish_state(open); break;
         case 6: id(za6).publish_state(open); break;
-        case 7: id(za7).publish_state(open); break;
-        case 8: id(za8).publish_state(open); break;
-        case 9: id(za9).publish_state(open); break;
-        case 10: id(za10).publish_state(open); break;
-        case 11: id(za11).publish_state(open); break;
       }
     });
     return {DSCkeybus};
@@ -110,48 +107,68 @@ binary_sensor:
     #zone status
   - platform: template
     id: z1
-    name: "$systemName Front door"
+    name: "$systemName Front & Garage door"
     device_class: door
   - platform: template
     id: z2
-    name: "$systemName Garage door"
-    device_class: door
-  - platform: template
-    id: z3
-    name: "$systemName Back door"
-    device_class: door
-  - platform: template
-    id: z4
-    name: "$systemName Living room window"
-    device_class: window
-  - platform: template
-    id: z5
-    name: "$systemName Dining room window"
-    device_class: window
-  - platform: template
-    id: z6
-    name: "$systemName Family room window LF"
-    device_class: window
-  - platform: template
-    id: z7
-    name: "$systemName Family room window RF"
-    device_class: window
-  - platform: template
-    id: z8
-    name: "$systemName Basement windows"
-    device_class: window
-  - platform: template
-    id: z9
-    name: "$systemName Upstairs motion"
+    name: "$systemName Entryway motion"
     device_class: motion
   - platform: template
-    id: z10
+    id: z3
+    name: "$systemName Dining room motion"
+    device_class: motion
+  - platform: template
+    id: z4
+    name: "$systemName Family room motion"
+    device_class: motion
+  - platform: template
+    id: z5
+    name: "$systemName Office motion"
+    device_class: motion
+  - platform: template
+    id: z6
     name: "$systemName Basement motion"
     device_class: motion
   - platform: template
+    id: z7
+    name: "$systemName Office or Laundry"
+    device_class: window
+  - platform: template
+    id: z8
+    name: "$systemName Family room windows"
+    device_class: window
+  - platform: template
+    id: z9
+    name: "$systemName Nook windows"
+    device_class: window
+  - platform: template
+    id: z10
+    name: "$systemName Back door"
+    device_class: door
+  - platform: template
     id: z11
-    name: "$systemName Main floor motion"
-    device_class: motion
+    name: "$systemName Dining room door"
+    device_class: door
+  - platform: template
+    id: z12
+    name: "$systemName Living room"
+    device_class: window
+  - platform: template
+    id: z13
+    name: "$systemName Yasmine Bedroom"
+    device_class: window
+  - platform: template
+    id: z14
+    name: "$systemName Basement East"
+    device_class: window
+  - platform: template
+    id: z15
+    name: "$systemName Basement Slider"
+    device_class: door
+  - platform: template
+    id: z16
+    name: "$systemName Basement South"
+    device_class: window
     
     #zone alarm status
   - platform: template
@@ -172,31 +189,11 @@ binary_sensor:
     #device_class: safety
   - platform: template
     id: za5
-    name: "$systemName Dining room window alarm"
+    name: "$systemName Zones 5-8"
     #device_class: safety
   - platform: template
     id: za6
-    name: "$systemName Family room window LF alarm"
-    #device_class: safety
-  - platform: template
-    id: za7
-    name: "$systemName Family room window RF alarm"
-    #device_class: safety
-  - platform: template
-    id: za8
-    name: "$systemName Basement windows alarm"
-    #device_class: safety
-  - platform: template
-    id: za9
-    name: "$systemName Upstairs motion alarm"
-    #device_class: safety
-  - platform: template
-    id: za10
-    name: "$systemName Basement motion alarm"
-    #device_class: safety
-  - platform: template
-    id: za11
-    name: "$systemName Main floor motion alarm"
+    name: "$systemName Zones 9-16"
     #device_class: safety
     
   - platform: template
@@ -233,17 +230,10 @@ text_sensor:
     name: "$systemName Partition 1 Status "
     icon: "mdi:shield"
   - platform: template
-    id: p2
-    name: "$systemName Partition 2 Status "
-    icon: "mdi:shield"  
-  - platform: template
     id: m1
     name: "$systemName Partition 1 Msg "
     icon: "mdi:alert-box"
-  - platform: template
-    id: m2
-    name: "$systemName Partition 2 Msg "
-    icon: "mdi:alert-box"
+
      
 switch:
   - platform: template
