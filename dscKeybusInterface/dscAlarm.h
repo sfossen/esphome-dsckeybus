@@ -181,9 +181,7 @@ bool isInt(std::string s, int base){
 		// Checks if the interface is connected to the Keybus
 		if (dsc.keybusChanged) {
 			dsc.keybusChanged = false;  // Resets the Keybus data status flag
-			if (dsc.keybusConnected) {
-				systemStatusChangeCallback(STATUS_ONLINE);
-			} else systemStatusChangeCallback(STATUS_OFFLINE);
+			systemStatusChangeCallback(dsc.keybusConnected ? STATUS_ONLINE : STATUS_OFFLINE);
 		}
 
 		// Sends the access code when needed by the panel for arming
@@ -193,33 +191,31 @@ bool isInt(std::string s, int base){
 			if (debug > 0) ESP_LOGD("Debug","got access code prompt");
 		}
 
-		if (dsc.powerChanged ) {
-			dsc.powerChanged=false;
-			if (dsc.powerTrouble) {
-               troubleStatusChangeCallback(acStatus,false ); //no ac
-            } else troubleStatusChangeCallback(acStatus,true );
+		if (dsc.powerChanged) {
+			dsc.powerChanged = false;
+			troubleStatusChangeCallback(acStatus, dsc.powerTrouble); //no ac
 		}
 
-		if (dsc.batteryChanged ) {
-			dsc.batteryChanged=false;
-			if (dsc.batteryTrouble) {
-                troubleStatusChangeCallback(batStatus,true );
-            } else troubleStatusChangeCallback(batStatus,false );
+		if (dsc.batteryChanged) {
+			dsc.batteryChanged = false;
+			troubleStatusChangeCallback(batStatus, dsc.batteryTrouble);
 		}
-		if (dsc.keypadFireAlarm ) {
-			dsc.keypadFireAlarm=false;
-			partitionMsgChangeCallback(1,"Keypad Fire Alarm");
+
+		if (dsc.keypadFireAlarm) {
+			dsc.keypadFireAlarm = false;
+			partitionMsgChangeCallback(1, "Keypad Fire Alarm");
 		}
-		if (dsc.keypadPanicAlarm ) {
-			dsc.keypadPanicAlarm=false;
-            troubleStatusChangeCallback(panicStatus,true );
-			partitionMsgChangeCallback(1,"Keypad Panic Alarm");
+
+		if (dsc.keypadPanicAlarm) {
+			dsc.keypadPanicAlarm = false;
+			troubleStatusChangeCallback(panicStatus, true);
+			partitionMsgChangeCallback(1, "Keypad Panic Alarm");
 		}
+
 		// Publishes trouble status
 		if (dsc.troubleChanged ) {
 			dsc.troubleChanged = false;  // Resets the trouble status flag
-			if (dsc.trouble) troubleStatusChangeCallback(trStatus,true );  // Trouble alarm tripped
-			else troubleStatusChangeCallback(trStatus,false ); // Trouble alarm restored
+			troubleStatusChangeCallback(trStatus, dsc.trouble);
 		}
 	if (debug > 0) ESP_LOGD("Debug22","Panel command data: %02X,%02X,%02X",dsc.panelData[0],dsc.panelData[1],dsc.panelData[2]);
 
@@ -231,7 +227,7 @@ bool isInt(std::string s, int base){
 		if (debug > 0) ESP_LOGD("Debug33","Partition data %02X: %02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X",partition,dsc.lights[partition], dsc.status[partition], dsc.armed[partition],dsc.armedAway[partition],dsc.armedStay[partition],dsc.noEntryDelay[partition],dsc.fire[partition],dsc.armedChanged[partition],dsc.exitDelay[partition],dsc.readyChanged[partition],dsc.ready[partition],dsc.alarmChanged[partition],dsc.alarm[partition]);
 
 			if (lastStatus[partition] != dsc.status[partition]  ) {
-				lastStatus[partition]=dsc.status[partition];
+				lastStatus[partition] = dsc.status[partition];
 				char msg[50];
 				sprintf(msg,"%02X: %s", dsc.status[partition], String(statusText(dsc.status[partition])).c_str());
 			}
@@ -273,8 +269,7 @@ bool isInt(std::string s, int base){
 			// Publishes fire alarm status
 			if (dsc.fireChanged[partition] ) {
 				dsc.fireChanged[partition] = false;  // Resets the fire status flag
-				if (dsc.fire[partition]) fireStatusChangeCallback(partition+1,true );  // Fire alarm tripped
-				else fireStatusChangeCallback(partition+1,false ); // Fire alarm restored
+				fireStatusChangeCallback(partition+1, dsc.fire[partition]);
 			}
 		}
 
@@ -284,45 +279,46 @@ bool isInt(std::string s, int base){
 		//   openZones[1] and openZonesChanged[1]: Bit 0 = Zone 9 ... Bit 7 = Zone 16
 		//   ...
 		//   openZones[7] and openZonesChanged[7]: Bit 0 = Zone 57 ... Bit 7 = Zone 64
-		if (dsc.openZonesStatusChanged  ) {
+		if (dsc.openZonesStatusChanged) {
 			dsc.openZonesStatusChanged = false;                           // Resets the open zones status flag
+			zone = 1;
 			for (byte zoneGroup = 0; zoneGroup < dscZones; zoneGroup++) {
-				for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
-					if (bitRead(dsc.openZonesChanged[zoneGroup], zoneBit)) {  // Checks an individual open zone status flag
-						bitWrite(dsc.openZonesChanged[zoneGroup], zoneBit, 0);  // Resets the individual open zone status flag
-						zone=zoneBit + 1 + (zoneGroup * 8);
-						if (bitRead(dsc.openZones[zoneGroup], zoneBit)) {
-							zoneStatusChangeCallback(zone, true);  // Zone open
+				byte openChanged = openZonesChanged[zoneGroup];
+				if (openChanged) {
+					for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
+						if (bitRead(openChanged, zoneBit)) {  // Checks an individual open zone status flag
+							zoneStatusChangeCallback(zone, bitRead(dsc.openZones[zoneGroup], zoneBit));
+							zone++;
 						}
-						else  zoneStatusChangeCallback(zone, false);        // Zone closed
 					}
-				}
+					dsc.openZonesChanged[zoneGroup] = 0; // Resets the individual open zone status flag
+				} else zone += 8;
 			}
 		}
+
 
 		// Zone alarm status is stored in the alarmZones[] and alarmZonesChanged[] arrays using 1 bit per zone, up to 64 zones
 		//   alarmZones[0] and alarmZonesChanged[0]: Bit 0 = Zone 1 ... Bit 7 = Zone 8
 		//   alarmZones[1] and alarmZonesChanged[1]: Bit 0 = Zone 9 ... Bit 7 = Zone 16
 		//   ...
 		//   alarmZones[7] and alarmZonesChanged[7]: Bit 0 = Zone 57 ... Bit 7 = Zone 64
-		if (dsc.alarmZonesStatusChanged  ) {
+		if (dsc.alarmZonesStatusChanged) {
 			dsc.alarmZonesStatusChanged = false;                           // Resets the alarm zones status flag
+			zone = 1;
 			for (byte zoneGroup = 0; zoneGroup < dscZones; zoneGroup++) {
-				for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
-					if (bitRead(dsc.alarmZonesChanged[zoneGroup], zoneBit)) {  // Checks an individual alarm zone status flag
-						bitWrite(dsc.alarmZonesChanged[zoneGroup], zoneBit, 0);  // Resets the individual alarm zone status flag
-						zone=zoneBit + 1 + (zoneGroup * 8);
-						if (bitRead(dsc.alarmZones[zoneGroup], zoneBit)) {
-							zoneAlarmChangeCallback(zone, true);  // Zone alarm
+				byte alarmChanged = alarmZonesChanged[zoneGroup];
+				if (alarmChanged) {
+					for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
+						if (bitRead(alarmChanged, zoneBit)) {  // Checks an individual alarm zone status flag
+							zoneAlarmChangeCallback(zone, bitRead(dsc.alarmZones[zoneGroup], zoneBit));
+							zone++;
 						}
-						else  zoneAlarmChangeCallback(zone, false);        // Zone restored
 					}
-				}
+					dsc.alarmZonesChanged[zoneGroup] = 0; // Resets the individual alarm zone status flag
+				} else zone += 8;
 			}
 		}
-
 	}
-
   }
 
 const __FlashStringHelper *statusText(uint8_t statusCode)
