@@ -283,7 +283,7 @@ bool isInt(std::string s, int base){
 			dsc.openZonesStatusChanged = false;                           // Resets the open zones status flag
 			zone = 1;
 			for (byte zoneGroup = 0; zoneGroup < dscZones; zoneGroup++) {
-				byte openChanged = openZonesChanged[zoneGroup];
+				byte openChanged = dsc.openZonesChanged[zoneGroup];
 				if (openChanged) {
 					for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
 						if (bitRead(openChanged, zoneBit)) {  // Checks an individual open zone status flag
@@ -306,7 +306,7 @@ bool isInt(std::string s, int base){
 			dsc.alarmZonesStatusChanged = false;                           // Resets the alarm zones status flag
 			zone = 1;
 			for (byte zoneGroup = 0; zoneGroup < dscZones; zoneGroup++) {
-				byte alarmChanged = alarmZonesChanged[zoneGroup];
+				byte alarmChanged = dsc.alarmZonesChanged[zoneGroup];
 				if (alarmChanged) {
 					for (byte zoneBit = 0; zoneBit < 8; zoneBit++) {
 						if (bitRead(alarmChanged, zoneBit)) {  // Checks an individual alarm zone status flag
